@@ -8,7 +8,22 @@ import { verifyIfHasIndividualApi } from '../../Utils/VerifyIfHasIndividualApi.j
 export const command = {
     data: new SlashCommandBuilder()
         .setName('toptracks')
-        .setDescription('Mostra as musicas mais ouvidas no Spotify'),
+        .setDescription('Mostra as musicas mais ouvidas no Spotify')
+        .addStringOption((option) =>
+            option.setName('periodo')
+                .setDescription('O período de tempo para o qual você deseja obter as músicas mais ouvidas')
+                .addChoices({
+                    name: 'Últimas 4 semanas',
+                    value: 'short_term'
+                }, {
+                    name: 'Últimos 6 meses',
+                    value: 'medium_term'
+                }, {
+                    name: 'Ultimos 12 meses',
+                    value: 'long_term'
+                })
+                .setRequired(true)
+        ),
     async execute(client: Spotcord, interaction: ChatInputCommandInteraction) {
         await interaction.deferReply();
         const hasIndividualApi = await verifyIfHasIndividualApi(interaction.user.id);
@@ -18,7 +33,9 @@ export const command = {
             });
 
         const spotify = individualUserSpotifyApi.get(interaction.user.id) as SpotifyWebApi;
-        spotify.getMyTopTracks({ limit: 10 }).then((tracks) => {
+        const range = interaction.options.getString('periodo', true) as "short_term" | "medium_term" | "long_term" | undefined;
+
+        spotify.getMyTopTracks({ limit: 10, time_range: range }).then((tracks) => {
             const embed = new EmbedBuilder()
                 .setColor(0x1DB954)
                 .setAuthor({
