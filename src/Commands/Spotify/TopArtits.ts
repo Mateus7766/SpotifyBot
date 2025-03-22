@@ -58,24 +58,24 @@ export const command = {
                     }]
                 },
                 options: {
-                    indexAxis: 'y', 
+                    indexAxis: 'y', // barras horizontais
                     responsive: false,
                     plugins: {
                         legend: { display: false },
                         title: {
                             display: true,
                             text: 'Gêneros mais ouvidos no Spotify',
-                            color: '#000',
+                            color: '#FFFFFF',
                             font: { size: 18, weight: 'bold' }
                         }
                     },
                     scales: {
                         x: {
-                            ticks: { color: '#000' },
+                            ticks: { color: '#FFFFFF' },
                             grid: { color: '#ddd' }
                         },
                         y: {
-                            ticks: { color: '#000', font: { size: 13 } },
+                            ticks: { color: '#FFFFFF', font: { size: 13 } },
                             grid: { color: '#eee' }
                         }
                     }
