@@ -58,7 +58,7 @@ export const command = {
                     }]
                 },
                 options: {
-                    indexAxis: 'y', // barras horizontais
+                    indexAxis: 'y',
                     responsive: false,
                     plugins: {
                         legend: { display: false },
