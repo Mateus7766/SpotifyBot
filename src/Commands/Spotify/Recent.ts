@@ -19,15 +19,15 @@ export const command = {
         const spotify = individualUserSpotifyApi.get(interaction.user.id) as SpotifyWebApi;
 
         try {
-            const response = await spotify.getMyRecentlyPlayedTracks({ limit: 20 });
+            const response = await spotify.getMyRecentlyPlayedTracks({ limit: 10 });
             const tracks = response.body.items;
 
             if (!tracks.length) {
                 return interaction.followUp({ content: 'Nenhuma música recente encontrada.' });
             }
-
+            
             const trackList = tracks.map((track, index) => 
-                `${index + 1}. [**${track.track.name}**](https://open.spotify.com/track/${track.track.id}) - Por: ${track.track.artists.map(artist => artist.name).join(', ')}`
+                `${index + 1}. [**${track.track.name}**](https://open.spotify.com/track/${track.track.id})\n    ↳ Tocada: <t:${Math.round((new Date(track.played_at)).getTime() / 1000)}:R>`
             ).join('\n');
 
             const embed = new EmbedBuilder()

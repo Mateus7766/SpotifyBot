@@ -1,51 +1,99 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, AttachmentBuilder } from 'discord.js';
 import { Spotcord } from '../../Sructures/Client.js';
 import SpotifyWebApi from 'spotify-web-api-node';
 import { individualUserSpotifyApi } from '../../Utils/GenerateIndividualClass.js';
 import { verifyIfHasIndividualApi } from '../../Utils/VerifyIfHasIndividualApi.js';
+import { createCanvas, loadImage } from 'canvas';
 
 export const command = {
     data: new SlashCommandBuilder()
         .setName('toptracks')
-        .setDescription('Mostra as musicas mais ouvidas no Spotify')
+        .setDescription('Mostra as músicas mais ouvidas no Spotify')
         .addStringOption((option) =>
             option.setName('periodo')
                 .setDescription('O período de tempo para o qual você deseja obter as músicas mais ouvidas')
-                .addChoices({
-                    name: 'Últimas 4 semanas',
-                    value: 'short_term'
-                }, {
-                    name: 'Últimos 6 meses',
-                    value: 'medium_term'
-                }, {
-                    name: 'Ultimos 12 meses',
-                    value: 'long_term'
-                })
+                .addChoices(
+                    { name: 'Últimas 4 semanas', value: 'short_term' },
+                    { name: 'Últimos 6 meses', value: 'medium_term' },
+                    { name: 'Últimos 12 meses', value: 'long_term' }
+                )
+                .setRequired(true)
+        )
+        .addStringOption((option) =>
+            option.setName('tamanho')
+                .setDescription('Escolha o tamanho da área do gráfico')
+                .addChoices(
+                    { name: '3x3', value: '3x3' },
+                    { name: '4x4', value: '4x4' },
+                    { name: '5x5', value: '5x5' },
+                    { name: '7x7', value: '7x7' }
+                )
                 .setRequired(true)
         ),
     async execute(client: Spotcord, interaction: ChatInputCommandInteraction) {
         await interaction.deferReply();
         const hasIndividualApi = await verifyIfHasIndividualApi(interaction.user.id);
-        if (!hasIndividualApi)
-            return interaction.followUp({
-                content: 'Você não está logado no Spotify! Use o comando `/login` para logar!'
-            });
+        if (!hasIndividualApi) {
+            return interaction.followUp({ content: 'Você não está logado no Spotify! Use o comando `/login` para logar!' });
+        }
 
         const spotify = individualUserSpotifyApi.get(interaction.user.id) as SpotifyWebApi;
-        const range = interaction.options.getString('periodo', true) as "short_term" | "medium_term" | "long_term" | undefined;
+        const range = interaction.options.getString('periodo', true) as "short_term" | "medium_term" | "long_term";
+        const chartSize = interaction.options.getString('tamanho', true);
 
-        spotify.getMyTopTracks({ limit: 10, time_range: range }).then((tracks) => {
-            const embed = new EmbedBuilder()
-                .setColor(0x1DB954)
-                .setAuthor({
-                    name: `Top 10 Músicas Mais Ouvidas por ${interaction.user.displayName}`,
-                    iconURL: 'https://media.discordapp.net/attachments/1288079277304315969/1352839250755846194/Spotify_logo_without_text.svg.png?ex=67df793b&is=67de27bb&hm=a61026b4f1055ba13520609df452b757aab441d725f2ebf17bd80fa47c876238&=&format=webp&quality=lossless&width=265&height=265'
-                })
-                .setDescription(tracks.body.items.map((track, index) => {
-                    return `**${index + 1}.** [${track.name}](${track.external_urls.spotify}) - ${track.artists.map((artist) => artist.name).join(', ')}`;
-                }).join('\n'));
-            interaction.followUp({ embeds: [embed] });
-        });
+        try {
+            const chartDimensions: { [key: string]: { rows: number, cols: number } } = {
+                '3x3': { rows: 3, cols: 3 },
+                '4x4': { rows: 4, cols: 4 },
+                '5x5': { rows: 5, cols: 5 },
+                '7x7': { rows: 7, cols: 7 },
+            };
+
+            const { rows, cols } = chartDimensions[chartSize];
+            const canvasSize = 900;
+            const imageSize = canvasSize / Math.max(rows, cols);
+            const formula = (1 / (1 + (rows * cols * 0.01)));
+            const fontSize = 20 * formula; 
+            const canvas = createCanvas(canvasSize, canvasSize);
+            const ctx = canvas.getContext('2d');
+
+            const response = await spotify.getMyTopTracks({ limit: rows * cols, time_range: range });
+            const tracks = response.body.items;
+
+            if (!tracks.length) {
+                return interaction.followUp({ content: 'Nenhuma música encontrada para o período selecionado.' });
+            }
+
+            const images = await Promise.all(
+                tracks.slice(0, rows * cols).map(track => loadImage(track.album.images[0]?.url || 'https://placehold.co/400x400.png'))
+            );
+
+            ctx.textAlign = 'center';
+            ctx.font = `${fontSize}px Arial`;
+
+            images.forEach((image, index) => {
+                const x = (index % cols) * imageSize;
+                const y = Math.floor(index / cols) * imageSize;
+                ctx.drawImage(image, x, y, imageSize, imageSize);
+
+                const trackName = tracks[index].name;
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(x, y + imageSize - 32 * formula, imageSize, 35 * formula);
+
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(trackName, x + imageSize / 2, y + imageSize - 10 * formula);
+            });
+
+            const buffer = canvas.toBuffer('image/png');
+            const attachment = new AttachmentBuilder(buffer, { name: 'toptracks.png' });
+
+            await interaction.followUp({ files: [attachment], content: `-# Source: Spotify Web API` });
+
+        } catch (error) {
+            console.error(error);
+            return interaction.followUp({ content: 'Erro ao obter dados do Spotify. Tente novamente mais tarde.' });
+        }
     }
 };
