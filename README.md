@@ -1,4 +1,5 @@
-# Spotify Login and Control Bot
+# Discfy
+
 Bot simples para o Discord que permite que você faça login com a conta do Spotify e consiga acessa algumas informações usando a API do spotify.
 
 ## Imagens
@@ -7,10 +8,10 @@ Bot simples para o Discord que permite que você faça login com a conta do Spot
 ![Imagem 1](.github/images/image.png)
 
 ### Exemplo 2
-![Imagem 2](.github/images/image2.png)
+![Imagem 2](.github/images/imagee.png)
 
 ### Exemplo 3
-![Imagem 3](.github/images/image3.png)
+![Imagem 3](.github/images/imageee.png)
 
 # Exemplo do .env
 
