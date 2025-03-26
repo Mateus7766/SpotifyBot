@@ -6,7 +6,6 @@ async function verifyIfHasIndividualApi(userid: string) {
     if(!user) return false;
     const api = individualUserSpotifyApi.get(userid);
     if(!api) {
-        console.log('Setting individual api')
         await setIndividualUserSpotifyApi(userid);
         return true
     } else return true

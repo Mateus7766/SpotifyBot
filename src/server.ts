@@ -8,6 +8,7 @@ const app = express()
 const port = 3000
 
 const tempToken = new Map<string, string>()
+const tempRefreshToken = new Map<string, string>()
 
 app.get('/', (req, res) => {
     res.send('Hello from SpotifyBot =)')
@@ -58,6 +59,7 @@ app.get('/callback', async (req, res) => {
     const spotifyToken = tokenData.access_token
 
     tempToken.set(user.id, spotifyToken)
+    tempRefreshToken.set(user.id, tokenData.refresh_token)
 
     res.send(`Login com Spotify feito com sucesso, agora <a href="${generateAuthLinkDiscord()}">Clique aqui</a> para sabermos se quem fez login agora foi: <strong>${user.username} (${user.displayName})</strong>`)
 })
@@ -129,13 +131,17 @@ app.get('/discord_callback', async (req, res) => {
         const user = new User({
             id: discordUser.id,
             spotifyToken: tempToken.get(discordUser.id) as string,
+            refreshToken: tempRefreshToken.get(discordUser.id) as string,
         })
 
         await user.save()
     } else {
         document.spotifyToken = tempToken.get(discordUser.id) as string
+        document.refreshToken = tempRefreshToken.get(discordUser.id) as string
         await document.save()
     }
+
+    tempRefreshToken.delete(discordUser.id)
     tempToken.delete(discordUser.id)
     tempIds.delete(discordUsersId.get(discordUser.id) as string)
     discordUsersId.delete(discordUser.id)

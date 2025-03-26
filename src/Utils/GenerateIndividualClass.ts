@@ -13,8 +13,9 @@ async function setIndividualUserSpotifyApi(userid: string) {
     const user = await User.findOne({ id: userid });
 
     if (user) {
-        const api = individualUserSpotifyApi.get(userid) as any;
+        const api = individualUserSpotifyApi.get(userid) as SpotifyWebApi;
         api.setAccessToken(user.spotifyToken);
+        api.setRefreshToken(user.refreshToken);
     }
 }
 
