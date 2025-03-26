@@ -9,6 +9,8 @@ const port = 3000
 
 const tempToken = new Map<string, string>()
 const tempRefreshToken = new Map<string, string>()
+const tempGeneratedTime = new Map<string, number>()
+const tempExpiresIn = new Map<string, number>()
 
 app.get('/', (req, res) => {
     res.send('Hello from SpotifyBot =)')
@@ -58,8 +60,12 @@ app.get('/callback', async (req, res) => {
     const tokenData = await response.json()
     const spotifyToken = tokenData.access_token
 
+    console.log(tokenData)
+
     tempToken.set(user.id, spotifyToken)
     tempRefreshToken.set(user.id, tokenData.refresh_token)
+    tempGeneratedTime.set(user.id, Date.now());
+    tempExpiresIn.set(user.id, tokenData.expires_in)
 
     res.send(`Login com Spotify feito com sucesso, agora <a href="${generateAuthLinkDiscord()}">Clique aqui</a> para sabermos se quem fez login agora foi: <strong>${user.username} (${user.displayName})</strong>`)
 })
@@ -132,19 +138,26 @@ app.get('/discord_callback', async (req, res) => {
             id: discordUser.id,
             spotifyToken: tempToken.get(discordUser.id) as string,
             refreshToken: tempRefreshToken.get(discordUser.id) as string,
+            generatedTime: tempGeneratedTime.get(discordUser.id) as number,
+            expiresIn: tempExpiresIn.get(discordUser.id) as number
         })
 
         await user.save()
     } else {
+        document.generatedTime = tempGeneratedTime.get(discordUser.id) as number
+        document.expires_in = tempExpiresIn.get(discordUser.id) as number
         document.spotifyToken = tempToken.get(discordUser.id) as string
         document.refreshToken = tempRefreshToken.get(discordUser.id) as string
         await document.save()
     }
 
+    // não era mais facil guardar o objeto inteiro aqui em vez de criar um monte de map? sim. mas eu não pensei nisso na hora, já que ta funcionando, deixa ai kkkk.
     tempRefreshToken.delete(discordUser.id)
     tempToken.delete(discordUser.id)
     tempIds.delete(discordUsersId.get(discordUser.id) as string)
     discordUsersId.delete(discordUser.id)
+    tempExpiresIn.delete(discordUser.id)
+    tempGeneratedTime.delete(discordUser.id)
 
     await setIndividualUserSpotifyApi(discordUser.id)
 
