@@ -52,10 +52,11 @@ export const command = {
 
             const { rows, cols } = chartDimensions[chartSize];
             const canvasSize = 900;
+            const borderHeight = 50;
+            const borderRadius = 20;
             const imageSize = canvasSize / Math.max(rows, cols);
-            const formula = (1 / (1 + (rows * cols * 0.01)));
-            const fontSize = 20 * formula; 
-            const canvas = createCanvas(canvasSize, canvasSize);
+            const fontSize = 20 * (1 / (1 + (rows * cols * 0.01)));
+            const canvas = createCanvas(canvasSize, canvasSize + borderHeight);
             const ctx = canvas.getContext('2d');
 
             const response = await spotify.getMyTopTracks({ limit: rows * cols, time_range: range });
@@ -68,22 +69,36 @@ export const command = {
             const images = await Promise.all(
                 tracks.slice(0, rows * cols).map(track => loadImage(track.album.images[0]?.url || 'https://placehold.co/400x400.png'))
             );
+            
+            ctx.fillStyle = '#1DB954';
+            ctx.beginPath();
+            ctx.moveTo(0, borderHeight);
+            ctx.arcTo(0, 0, borderRadius, 0, borderRadius);
+            ctx.lineTo(canvasSize - borderRadius, 0);
+            ctx.arcTo(canvasSize, 0, canvasSize, borderRadius, borderRadius);
+            ctx.lineTo(canvasSize, borderHeight);
+            ctx.closePath();
+            ctx.fill();
 
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 30px Arial';
             ctx.textAlign = 'center';
-            ctx.font = `${fontSize}px Arial`;
+            ctx.fillText(`Aqui está seu chart!`, canvasSize / 2, borderHeight / 1.5);
+
 
             images.forEach((image, index) => {
                 const x = (index % cols) * imageSize;
-                const y = Math.floor(index / cols) * imageSize;
+                const y = Math.floor(index / cols) * imageSize + borderHeight;
                 ctx.drawImage(image, x, y, imageSize, imageSize);
 
-                const trackName = tracks[index].name;
+                const artistName = tracks[index].name;
 
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                ctx.fillRect(x, y + imageSize - 32 * formula, imageSize, 35 * formula);
-
+                ctx.fillRect(x, y + imageSize - 32 * (1 / (1 + (rows * cols * 0.01))), imageSize, 35 * (1 / (1 + (rows * cols * 0.01))));
+               
                 ctx.fillStyle = '#FFFFFF';
-                ctx.fillText(trackName, x + imageSize / 2, y + imageSize - 10 * formula);
+                ctx.font = `${fontSize}px Arial`;
+                ctx.fillText(artistName, x + imageSize / 2, y + imageSize - 10 * (1 / (1 + (rows * cols * 0.01))));
             });
 
             const buffer = canvas.toBuffer('image/png');

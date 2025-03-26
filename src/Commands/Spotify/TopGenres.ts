@@ -32,7 +32,7 @@ export const command = {
         const range = interaction.options.getString('periodo', true) as "short_term" | "medium_term" | "long_term";
 
         try {
-            const response = await spotify.getMyTopArtists({ limit: 10, time_range: range });
+            const response = await spotify.getMyTopArtists({ limit: 50, time_range: range });
             const artists = response.body.items;
             
             if (!artists.length) {
